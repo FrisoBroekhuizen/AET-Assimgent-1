@@ -45,3 +45,10 @@ def work_gas_gen(mfr, c_p_g, T_g, T_is_exp_amb):
     work = mfr * c_p_g * (T_g - T_is_exp_amb)
     return work
 
+def T_is_exp_amb(T_g, p_g, p_amb, kappa_g):
+    T_tot = T_g*(((p_g)/(p_amb))**(1-(1)/(kappa_g)))**(-1)
+    return T_tot
+
+def PR_crit(eta, kappa):
+    PR = (1 - (1)/(eta) * ((kappa - 1)/(kappa + 1)))**((-1 * kappa)/(kappa - 1))
+    return PR
