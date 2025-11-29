@@ -3,7 +3,7 @@ import math
 ## ------------------------------------------ Flight condition--------------------------------
 #constants from TUTORIAL:
 # LEAP-1A @ cruise (Mach 0.78, Altitude 10668 m)
-
+'''
 Mach = 0.78
 Altitude = 10668          # m
 
@@ -35,6 +35,7 @@ eta_HPT = 0.90
 eta_mech = 0.99
 eta_combustor = 0.995
 eta_nozzle = 0.98
+eta_gearbox = 0.995
 
 # Fuel properties
 LHV_fuel = 43e6           # J/kg  (43 MJ/kg)
@@ -44,11 +45,11 @@ cp_air = 1000             # J/kg·K
 gamma_air = 1.4
 cp_gas = 1150             # J/kg·K
 gamma_gas = 1.33
-
+'''
 
 
 #Constant from assigment:
-'''
+
 Mach = 0.78
 Altitude = 11000        # m
 T_ambient = 216.5       # K
@@ -81,10 +82,13 @@ LHV_fuel = 43e6         # J/kg  (43 MJ/kg)
 cp_air = 1000           # J/kg·K
 gamma_air = 1.4
 cp_gas = 1150           # J/kg·K
-gamma_gas = 1.33'''
+gamma_gas = 1.33
 
 
 ##  ----------------------- Equations Engine Cycle -----------------------------
+def PR_crit(eta, kappa):
+    PR = (1 - (1)/(eta) * ((kappa - 1)/(kappa + 1)))**((-1 * kappa)/(kappa - 1))
+    return PR
 def M_to_V(M, gamma, R, T):
     V = M * np.sqrt(gamma * R * T)
     return V
@@ -236,7 +240,8 @@ print("T_tot after HPT (K): ", T_tot45)
 p_tot45 = p_tot_turb(p_tot4, eta_HPT, T_tot4, T_tot45, gamma_gas)
 print("p_tot after HPT (Pa): ", p_tot45)
 # 1.6) LPT 45->5
-W_LPT = (W_LPC + W_fan)/eta_mech
+W_fangeared = W_fan / eta_gearbox
+W_LPT = (W_LPC + W_fangeared)/eta_mech
 mdot_45 = mdot_4
 T_tot5 = T_tot45 - (W_LPT)/(mdot_45 * cp_gas)
 print("T_tot after LPT (K): ", T_tot5)
@@ -247,8 +252,8 @@ p_tot7 = p_tot5
 T_tot7 = T_tot5
 nozlleratio = p_tot7 / P_ambient
 print("Nozzle pressure ratio: ", nozlleratio) 
-#criticalpressureratio TODO: make function!!! 
-if nozlleratio > 1.876:
+criticalcore = PR_crit(eta_nozzle, gamma_gas) 
+if nozlleratio > criticalcore:
     # unchoked
     print("CHOKED!")
     T_8 = T_tot7 * (2/(gamma_gas + 1))
@@ -272,7 +277,8 @@ p_tot16 = p_tot13
 T_tot16 = T_tot13
 bypasspressureratio = p_tot16 / P_ambient
 print("Bypass nozzle pressure ratio: ", bypasspressureratio)
-if bypasspressureratio > 1.92:
+criticalBypass = PR_crit(eta_nozzle, gamma_air)
+if bypasspressureratio > criticalBypass:
     #choked
     print("CHOKED!")
     T_18 = T_tot16 * (2/(gamma_air + 1))
