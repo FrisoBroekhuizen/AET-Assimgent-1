@@ -283,8 +283,14 @@ if nozlleratio > criticalcore:
     print("Core thrust (N): ", F_core)
 else:
     print("UNCHOKED!")
+    T_8 = T_tot7 * (2/(gamma_gas + 1))
+    p_8 = p_tot7 / (1.876)
+    print("p_8 (Pa): ", p_8)
+    print("T_8 (K): ", T_8)
     v_flight = M_to_V(Mach, gamma_air, R_air, T_ambient)
     print("Flight velocity (m/s): ", v_flight)
+    V_8 = np.sqrt(gamma_gas * R_air * T_8)
+    print("V_8 (m/s): ", V_8)
     F_core = mdot_45 * (V_8 -  v_flight)
     print("Core thrust (N): ", F_core)
 #1.8) Bypass nozzle
