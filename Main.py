@@ -137,6 +137,14 @@ def work_gas_gen(mfr, c_p_g, T_g, T_is_exp_amb):
     work = mfr * c_p_g * (T_g - T_is_exp_amb)
     return work
 
+def work_gas_gen(mfr, c_p_g, T_g, T_is_exp_amb):
+    work = mfr * c_p_g * (T_g - T_is_exp_amb)
+    return work
+
+def T_is_exp_amb(T_g, p_g, p_amb, kappa_g):
+    T_tot = T_g*(((p_g)/(p_amb))**(1-(1)/(kappa_g)))**(-1)
+    return T_tot
+
 ## ------------------- Equations Gas Generator ------------------------------ 
 
 
@@ -145,16 +153,18 @@ def work_gas_gen(mfr, c_p_g, T_g, T_is_exp_amb):
 
 
 ## -------------------------------- Efficiency formulas --------------------------
-def ETA_comb(mdot, cp, DeltaT_comb, mdot_f, LHV_f):
+def ETA_comb(mdot_air, mdot_f, mdot_gas, T3, T4, c_p_g, c_p_a, LHV_f):
     """
     Combustor efficiency:
     """
-    return mdot * cp * DeltaT_comb / (mdot_f * LHV_f)
+    return (mdot_gas * c_p_g * T4 - mdot_air * c_p_a * T3) / (mdot_f * LHV_f)
+
 def ETA_thdy(P_gg, mdot, cp, DeltaT_comb):
     """
     Thermodynamic efficiency of gas generator:
     """
     return P_gg / (mdot * cp * DeltaT_comb)
+
 def ETA_jet_gener(mdot, vj, v0, P_gg):
     """
     Jet-generation efficiency:
@@ -163,6 +173,7 @@ def ETA_jet_gener(mdot, vj, v0, P_gg):
     vj   = np.asarray(vj)
     num = 0.5 * np.sum(mdot * (vj**2 - v0**2))
     return num / P_gg
+
 def ETA_prop(mdot, vj, v0):
     """
     Propulsive efficiency:
@@ -266,12 +277,16 @@ if nozlleratio > criticalcore:
     print("rho_8 (kg/m3): ", rho_8)
     A_8 = mdot_45 / (rho_8 * V_8)
     print("A_8 (m2): ", A_8)
+    v_flight = M_to_V(Mach, gamma_air, R_air, T_ambient)
+    print("Flight velocity (m/s): ", v_flight)
+    F_core = mdot_45 * (V_8 -  v_flight) + A_8 * (p_8 - P_ambient)
+    print("Core thrust (N): ", F_core)
 else:
     print("UNCHOKED!")
-v_flight = M_to_V(Mach, gamma_air, R_air, T_ambient)
-print("Flight velocity (m/s): ", v_flight)
-F_core = mdot_45 * (V_8 -  v_flight) + A_8 * (p_8 - P_ambient)
-print("Core thrust (N): ", F_core)
+    v_flight = M_to_V(Mach, gamma_air, R_air, T_ambient)
+    print("Flight velocity (m/s): ", v_flight)
+    F_core = mdot_45 * (V_8 -  v_flight)
+    print("Core thrust (N): ", F_core)
 #1.8) Bypass nozzle
 p_tot16 = p_tot13
 T_tot16 = T_tot13
@@ -286,11 +301,11 @@ if bypasspressureratio > criticalBypass:
     print("p_18 (Pa): ", p_18)
     print("T_18 (K): ", T_18)
     V_18 = np.sqrt(gamma_air * R_air * T_18)
-    print("V_19 (m/s): ", V_18)
+    print("V_18 (m/s): ", V_18)
     rho_18 = p_18 / (R_air * T_18)
-    print("rho_19 (kg/m3): ", rho_18)
+    print("rho_18 (kg/m3): ", rho_18)
     A_18 = mdot_bypass / (rho_18 * V_18)
-    print("A_19 (m2): ", A_18)
+    print("A_18 (m2): ", A_18)
 F_bypass = mdot_bypass * (V_18 - v_flight) + A_18 * (p_18 - P_ambient)
 print("Bypass thrust (N): ", F_bypass)
 # 1.9) Total thrust
@@ -299,3 +314,43 @@ print("Total thrust (N): ", F_total)
 TSFC = mdot_fuel / (F_total*0.000001) 
 print("TSFC (kg/Ns): ", TSFC)
 ## -- CALCULATIONS 2) Gas generator & Efficiencies -----------------------------------------------------------------------------------
+
+# Gas generator
+W_g = work_comp(mdot_core, cp_air, T_tot21, T_tot25)/eta_mech + work_comp(mdot_core, cp_air, T_tot2, T_tot21)/(eta_mech*eta_gearbox)
+print("Power output of gas generator (W): ", W_g)
+
+T_g = T_tot_turb(T_tot45, W_g, mdot_4, cp_gas)
+print("T_g (K): ", T_g)
+
+P_g = p_tot_turb(p_tot45, eta_LPT, T_tot45, T_g, gamma_gas)
+print("P_g (Pa): ", P_g)
+
+T_8_is_exp_amb = T_is_exp_amb(T_g, P_g, P_ambient, gamma_gas)
+print("T_8_is_exp_amb (K): ", T_8_is_exp_amb)
+
+W_gg = work_gas_gen(mdot_4, cp_gas, T_g, T_8_is_exp_amb)
+print("Work output of gas generator (W): ", W_gg)
+
+# Efficiencies
+v_jet_eff = F_total / (mdot_air + mfr_fuel) + v_flight
+print("Jet velocity for efficiency calculations (m/s): ", v_jet_eff)
+
+eta_comb = ETA_comb(mdot_4, mfr_fuel, mdot_core, T_tot3, T_tot4, cp_gas, cp_air, LHV_fuel)
+print("Combustor efficiency: ", eta_comb)
+
+eta_thdy = ETA_thdy(W_gg, mdot_air, cp_air, (T_tot4 - T_tot3))
+print("Thermodynamic efficiency: ", eta_thdy)
+
+eta_jet_gen = ETA_jet_gener([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, W_gg)
+print("Jet-generation efficiency: ", eta_jet_gen)
+
+eta_prop = ETA_prop([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight)
+print("Propulsive efficiency: ", eta_prop)
+
+eta_thermal = ETA_thermal([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, mfr_fuel, LHV_fuel)
+print("Overall thermal efficiency: ", eta_thermal)
+
+eta_total = ETA_total([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, mfr_fuel, LHV_fuel)
+print("Total efficiency: ", eta_total)  
+
+
