@@ -84,7 +84,6 @@ gamma_air = 1.4
 cp_gas = 1150           # J/kg·K
 gamma_gas = 1.33
 
-
 ##  ----------------------- Equations Engine Cycle -----------------------------
 def PR_crit(eta, kappa):
     PR = (1 - (1)/(eta) * ((kappa - 1)/(kappa + 1)))**((-1 * kappa)/(kappa - 1))
@@ -117,8 +116,8 @@ def work_comp(mfr, c_p_a, T_tot_before, T_tot_after):
     work = mfr * c_p_a * (T_tot_after - T_tot_before)
     return work
 
-def mfr_fuel(mfr, c_p_g, T_tot_before, T_tot_after, LHV_f, eta_cc):
-    mfr_f = (mfr * c_p_g * (T_tot_after - T_tot_before))/(LHV_f * eta_cc)
+def mfr_fuel(mfr, c_p_a, c_p_g, T_tot_before, T_tot_after, LHV_f, eta_cc):
+    mfr_f = ((mfr * c_p_g * T_tot_after) - (mfr * c_p_a * T_tot_before))/(LHV_f * eta_cc)
     return mfr_f
 
 def work_turb(work_comp, eta_mech):
@@ -132,7 +131,6 @@ def T_tot_turb(T_tot_before, W_turb, mfr, c_p_g):
 def p_tot_turb(p_tot_before, eta_turb, T_tot_before, T_tot_after, kappa_g):
     p_tot_after = p_tot_before * (1 - 1/eta_turb * (1 - (T_tot_after)/(T_tot_before)))**(kappa_g/(kappa_g - 1))
     return p_tot_after
-
 def work_gas_gen(mfr, c_p_g, T_g, T_is_exp_amb):
     work = mfr * c_p_g * (T_g - T_is_exp_amb)
     return work
@@ -142,7 +140,7 @@ def work_gas_gen(mfr, c_p_g, T_g, T_is_exp_amb):
     return work
 
 def T_is_exp_amb(T_g, p_g, p_amb, kappa_g):
-    T_tot = T_g*(((p_g)/(p_amb))**(1-(1)/(kappa_g)))**(-1)
+    T_tot = T_g*(((p_amb)/(p_g))**((kappa_g-1)/(kappa_g)))
     return T_tot
 
 ## ------------------- Equations Gas Generator ------------------------------ 
@@ -240,20 +238,20 @@ print("Work done on HPC (W): ", W_HPC)
 p_tot4 = p_tot3 * PR_combustor
 T_tot4 = Tt4
 # fuel mass flow
-mdot_fuel = mfr_fuel(mdot_core, cp_gas, T_tot3, T_tot4, LHV_fuel, eta_combustor)
+mdot_fuel = mfr_fuel(mdot_core, cp_air,  cp_gas, T_tot3, T_tot4, LHV_fuel, eta_combustor)
 print("Fuel mass flow (kg/s): ", mdot_fuel)
-mdot_4 = mdot_core + mdot_fuel
-print("Total mass flow at combustor exit (kg/s): ", mdot_4)
+mdot_core_fuel = mdot_core + mdot_fuel
+print("Total mass flow at combustor exit (kg/s): ", mdot_core_fuel)
 # 1.5) HPT 4->45
 W_HPT = W_HPC/eta_mech
-T_tot45 = T_tot4-(W_HPT)/(mdot_4 * cp_gas)
+T_tot45 = T_tot4-(W_HPT)/(mdot_core_fuel * cp_gas)
 print("T_tot after HPT (K): ", T_tot45)
 p_tot45 = p_tot_turb(p_tot4, eta_HPT, T_tot4, T_tot45, gamma_gas)
 print("p_tot after HPT (Pa): ", p_tot45)
 # 1.6) LPT 45->5
 W_fangeared = W_fan / eta_gearbox
 W_LPT = (W_LPC + W_fangeared)/eta_mech
-mdot_45 = mdot_4
+mdot_45 = mdot_core_fuel
 T_tot5 = T_tot45 - (W_LPT)/(mdot_45 * cp_gas)
 print("T_tot after LPT (K): ", T_tot5)
 p_tot5 = p_tot_turb(p_tot45, eta_LPT, T_tot45, T_tot5, gamma_gas)
@@ -265,10 +263,9 @@ nozlleratio = p_tot7 / P_ambient
 print("Nozzle pressure ratio: ", nozlleratio) 
 criticalcore = PR_crit(eta_nozzle, gamma_gas) 
 if nozlleratio > criticalcore:
-    # unchoked
     print("CHOKED!")
     T_8 = T_tot7 * (2/(gamma_gas + 1))
-    p_8 = p_tot7 / (1.876)
+    p_8 = p_tot7 / (criticalcore)
     print("p_8 (Pa): ", p_8)
     print("T_8 (K): ", T_8)
     V_8 = np.sqrt(gamma_gas * R_air * T_8)
@@ -284,7 +281,7 @@ if nozlleratio > criticalcore:
 else:
     print("UNCHOKED!")
     T_8 = T_tot7 * (2/(gamma_gas + 1))
-    p_8 = p_tot7 / (1.876)
+    p_8 = p_tot7 / (criticalcore)
     print("p_8 (Pa): ", p_8)
     print("T_8 (K): ", T_8)
     v_flight = M_to_V(Mach, gamma_air, R_air, T_ambient)
@@ -303,7 +300,7 @@ if bypasspressureratio > criticalBypass:
     #choked
     print("CHOKED!")
     T_18 = T_tot16 * (2/(gamma_air + 1))
-    p_18 = p_tot16 / (1.92)
+    p_18 = p_tot16 / (criticalBypass)
     print("p_18 (Pa): ", p_18)
     print("T_18 (K): ", T_18)
     V_18 = np.sqrt(gamma_air * R_air * T_18)
@@ -324,29 +321,49 @@ print("TSFC (kg/Ns): ", TSFC)
 # Gas generator
 W_g = work_comp(mdot_core, cp_air, T_tot21, T_tot25)/eta_mech + work_comp(mdot_core, cp_air, T_tot2, T_tot21)/(eta_mech*eta_gearbox)
 print("Power output of gas generator (W): ", W_g)
-
-T_g = T_tot_turb(T_tot45, W_g, mdot_4, cp_gas)
+print("T_45", T_tot45)
+T_g = T_tot_turb(T_tot45, W_g, mdot_core_fuel, cp_gas)
 print("T_g (K): ", T_g)
+print("T_5", T_tot5)
 
-P_g = p_tot_turb(p_tot45, eta_LPT, T_tot45, T_g, gamma_gas)
-print("P_g (Pa): ", P_g)
+p_g = p_tot_turb(p_tot45, eta_LPT, T_tot45, T_g, gamma_gas)
+print("P_g (Pa): ", p_g)
 
-T_8_is_exp_amb = T_is_exp_amb(T_g, P_g, P_ambient, gamma_gas)
+T_8_is_exp_amb = T_is_exp_amb(T_g, p_g, P_ambient, gamma_gas)
 print("T_8_is_exp_amb (K): ", T_8_is_exp_amb)
 
-W_gg = work_gas_gen(mdot_4, cp_gas, T_g, T_8_is_exp_amb)
+W_gg = work_gas_gen(mdot_45, cp_gas, T_g, T_8_is_exp_amb)
 print("Work output of gas generator (W): ", W_gg)
 
 # Efficiencies
-v_jet_eff = F_total / (mdot_air + mdot_fuel) + v_flight
-print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff)
+#previous (hidde)
+# v_jet_eff = F_total / (mdot_air + mdot_fuel) + v_flight
+# friso way
+v_jet_eff_core = V_8 + (A_8/mdot_core_fuel)*(p_8 - P_ambient) 
+V_jet_eff_bypass = V_18 + (A_18/mdot_bypass)*(p_18 - P_ambient)
+print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff_core, V_jet_eff_bypass)
+#print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff2)
 
-eta_comb = ETA_comb(mdot_4, mdot_fuel, mdot_core, T_tot3, T_tot4, cp_gas, cp_air, LHV_fuel)
+eta_comb = ETA_comb(mdot_45, mdot_fuel, mdot_core, T_tot3, T_tot4, cp_gas, cp_air, LHV_fuel)
 print("Combustor efficiency: ", eta_comb)
 
-eta_thdy = ETA_thdy(W_gg, mdot_air, cp_air, (T_tot4 - T_tot3))
+eta_thdy = ETA_thdy(W_gg, mdot_core, cp_air, (T_tot4 - T_tot3))
 print("Thermodynamic efficiency: ", eta_thdy)
+# friso way: splitting up in core and bypass
+## TODO calculate V_jet_eff_bypass for bypass too
+eta_jet_gen = 0.5*(mdot_core_fuel*(v_jet_eff_core**2-V_8**2)+mdot_bypass*(V_jet_eff_bypass**2-V_18**2))/(W_gg)
+#Question: mdot_core_fuel of mdot_core???
+eta_prop_upper = ((mdot_bypass*(V_jet_eff_bypass-V_18)*V_18)+(mdot_core_fuel*(v_jet_eff_core-V_8)*V_8))
+eta_prop_lower = (0.5*mdot_bypass*(V_jet_eff_bypass**2-V_18**2)+0.5*mdot_core_fuel*(v_jet_eff_core**2-V_8**2))
+eta_prop = eta_prop_upper / eta_prop_lower
+print("Jet-generation efficiency (friso way): ", eta_jet_gen)
+print("Propulsive efficiency (friso way): ", eta_prop)
+eta_thermal = ((0.5*mdot_core_fuel*(v_jet_eff_core**2-V_8**2))+(0.5*mdot_bypass*(V_jet_eff_bypass**2-V_18**2)))/(mdot_fuel * LHV_fuel)
+print("Overall thermal efficiency (friso way): ", eta_thermal)
+eta_total = ((mdot_core_fuel*(v_jet_eff_core-V_8)*V_8)+(mdot_bypass*(V_jet_eff_bypass-V_18)*V_18))/(mdot_fuel * LHV_fuel)
+print("Total efficiency (friso way): ", eta_total)
 
+'''
 eta_jet_gen = ETA_jet_gener([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, W_gg)
 print("Jet-generation efficiency: ", eta_jet_gen)
 
@@ -358,5 +375,5 @@ print("Overall thermal efficiency: ", eta_thermal)
 
 eta_total = ETA_total([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, mdot_fuel, LHV_fuel)
 print("Total efficiency: ", eta_total)  
-
+'''
 
