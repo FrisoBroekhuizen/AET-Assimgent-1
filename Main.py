@@ -362,7 +362,8 @@ eta_thermal = ((0.5*mdot_core_fuel*(v_jet_eff_core**2-V_8**2))+(0.5*mdot_bypass*
 print("Overall thermal efficiency (friso way): ", eta_thermal)
 eta_total = ((mdot_core_fuel*(v_jet_eff_core-V_8)*V_8)+(mdot_bypass*(V_jet_eff_bypass-V_18)*V_18))/(mdot_fuel * LHV_fuel)
 print("Total efficiency (friso way): ", eta_total)
-
+print(eta_thermal, eta_thdy*eta_jet_gen*eta_comb)
+print(eta_total, eta_prop*eta_thermal)
 '''
 eta_jet_gen = ETA_jet_gener([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, W_gg)
 print("Jet-generation efficiency: ", eta_jet_gen)
