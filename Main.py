@@ -351,20 +351,23 @@ eta_thdy = ETA_thdy(W_gg, mdot_core, cp_air, (T_tot4 - T_tot3))
 print("Thermodynamic efficiency: ", eta_thdy)
 # friso way: splitting up in core and bypass
 ## TODO calculate V_jet_eff_bypass for bypass too
-eta_jet_gen = 0.5*(mdot_core_fuel*(v_jet_eff_core**2-V_8**2)+mdot_bypass*(V_jet_eff_bypass**2-V_18**2))/(W_gg)
+eta_jet_gen = 0.5*(mdot_core_fuel*(v_jet_eff_core**2-v_flight**2)+mdot_bypass*(V_jet_eff_bypass**2-v_flight**2))/(W_gg)
 #Question: mdot_core_fuel of mdot_core???
-eta_prop_upper = ((mdot_bypass*(V_jet_eff_bypass-V_18)*V_18)+(mdot_core_fuel*(v_jet_eff_core-V_8)*V_8))
-eta_prop_lower = (0.5*mdot_bypass*(V_jet_eff_bypass**2-V_18**2)+0.5*mdot_core_fuel*(v_jet_eff_core**2-V_8**2))
+eta_prop_upper = ((mdot_bypass*(V_jet_eff_bypass-v_flight)*v_flight)+(mdot_core_fuel*(v_jet_eff_core-v_flight)*v_flight))
+eta_prop_lower = (0.5*mdot_bypass*(V_jet_eff_bypass**2-v_flight**2)+0.5*mdot_core_fuel*(v_jet_eff_core**2-v_flight**2))
 eta_prop = eta_prop_upper / eta_prop_lower
 print("Jet-generation efficiency (friso way): ", eta_jet_gen)
 print("Propulsive efficiency (friso way): ", eta_prop)
-eta_thermal = ((0.5*mdot_core_fuel*(v_jet_eff_core**2-V_8**2))+(0.5*mdot_bypass*(V_jet_eff_bypass**2-V_18**2)))/(mdot_fuel * LHV_fuel)
+eta_thermal = ((0.5*mdot_core_fuel*(v_jet_eff_core**2-v_flight**2))+(0.5*mdot_bypass*(V_jet_eff_bypass**2-v_flight**2)))/(mdot_fuel * LHV_fuel)
 print("Overall thermal efficiency (friso way): ", eta_thermal)
-eta_total = ((mdot_core_fuel*(v_jet_eff_core-V_8)*V_8)+(mdot_bypass*(V_jet_eff_bypass-V_18)*V_18))/(mdot_fuel * LHV_fuel)
+eta_total = ((mdot_core_fuel*(v_jet_eff_core-v_flight)*v_flight)+(mdot_bypass*(V_jet_eff_bypass-v_flight)*v_flight))/(mdot_fuel * LHV_fuel)
 print("Total efficiency (friso way): ", eta_total)
 print(eta_thermal, eta_thdy*eta_jet_gen*eta_comb)
 print(eta_total, eta_prop*eta_thermal)
 '''
+
+
+##### V_0 SHOULD BE FLIGHT VELOCITY!!!!
 eta_jet_gen = ETA_jet_gener([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, W_gg)
 print("Jet-generation efficiency: ", eta_jet_gen)
 
