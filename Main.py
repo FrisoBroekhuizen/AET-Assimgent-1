@@ -332,9 +332,10 @@ print("P_g (Pa): ", p_g)
 T_8_is_exp_amb = T_is_exp_amb(T_g, p_g, P_ambient, gamma_gas)
 print("T_8_is_exp_amb (K): ", T_8_is_exp_amb)
 
-W_gg = work_gas_gen(mdot_45, cp_gas, T_g, T_8_is_exp_amb)
+W_gg = work_gas_gen(mdot_core_fuel, cp_gas, T_g, T_8_is_exp_amb)
 print("Work output of gas generator (W): ", W_gg)
-
+W_gg=W_gg-0.5*mdot_core*v_flight**2
+print("Check power output of gas generator (W): ", W_gg)
 # Efficiencies
 #previous (hidde)
 # v_jet_eff = F_total / (mdot_air + mdot_fuel) + v_flight
@@ -347,7 +348,7 @@ print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff_co
 eta_comb = ETA_comb(mdot_45, mdot_fuel, mdot_core, T_tot3, T_tot4, cp_gas, cp_air, LHV_fuel)
 print("Combustor efficiency: ", eta_comb)
 
-eta_thdy = ETA_thdy(W_gg, mdot_core, cp_air, (T_tot4 - T_tot3))
+eta_thdy = ETA_thdy(W_gg, mdot_core_fuel, cp_air, (T_tot4 - T_tot3))
 print("Thermodynamic efficiency: ", eta_thdy)
 # friso way: splitting up in core and bypass
 ## TODO calculate V_jet_eff_bypass for bypass too
@@ -364,9 +365,8 @@ eta_total = ((mdot_core_fuel*(v_jet_eff_core-v_flight)*v_flight)+(mdot_bypass*(V
 print("Total efficiency (friso way): ", eta_total)
 print(eta_thermal, eta_thdy*eta_jet_gen*eta_comb)
 print(eta_total, eta_prop*eta_thermal)
+
 '''
-
-
 ##### V_0 SHOULD BE FLIGHT VELOCITY!!!!
 eta_jet_gen = ETA_jet_gener([mdot_core, mdot_bypass], [v_jet_eff, v_jet_eff], v_flight, W_gg)
 print("Jet-generation efficiency: ", eta_jet_gen)
