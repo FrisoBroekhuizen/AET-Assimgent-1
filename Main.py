@@ -90,6 +90,90 @@ gamma_air = 1.4
 cp_gas = 1150           # J/kg·K
 gamma_gas = 1.33
 
+# #Test Value set 1:
+
+# Mach = 0.78
+# Altitude = 10668        # m
+# T_ambient = 220       # K
+# P_ambient = 23842       # Pa
+# R_air = 287             # J/kg·K
+
+# # Mass flows
+# mdot_air = (8.6 + 1) * 50          # kg/s
+# Bypass_ratio = 8.6
+
+# # Pressure ratios
+# IPR_inlet = 0.99
+# FPR_fan = 1.5
+# PR_LPC = (40/(1.5*10))
+# PR_HPC = 10
+# PR_combustor = 0.96
+
+# # Efficiencies
+# eta_fan = 0.92
+# eta_LPC = 0.92
+# eta_HPC = 0.92
+# eta_LPT = 0.92
+# eta_HPT = 0.92
+# eta_mech = 0.99
+# eta_combustor = 0.995
+# eta_nozzle = 0.99
+# eta_gearbox = 1
+
+# # Turbine inlet temperature
+# Tt4 = 1450              # K
+
+# # Fuel properties
+# LHV_fuel = 43e6         # J/kg  (43 MJ/kg)
+
+# # Specific heats and specific heat ratios
+# cp_air = 1000           # J/kg·K
+# gamma_air = 1.4
+# cp_gas = 1150           # J/kg·K
+# gamma_gas = 1.33
+
+# #Test Value set 2:
+
+# Mach = 0.78
+# Altitude = 10668        # m
+# T_ambient = 220       # K
+# P_ambient = 23842       # Pa
+# R_air = 287             # J/kg·K
+
+# # Mass flows
+# mdot_air = (1.62 + 1) * 90.2          # kg/s
+# Bypass_ratio = 1.62
+
+# # Pressure ratios
+# IPR_inlet = 0.99
+# FPR_fan = 1.9
+# PR_LPC = (17/(1.9*3.5))
+# PR_HPC = 3.5
+# PR_combustor = 0.96
+
+# # Efficiencies
+# eta_fan = 0.85
+# eta_LPC = 0.85
+# eta_HPC = 0.85
+# eta_LPT = 0.88
+# eta_HPT = 0.88
+# eta_mech = 0.99
+# eta_combustor = 0.985
+# eta_nozzle = 0.99
+# eta_gearbox = 1
+
+# # Turbine inlet temperature
+# Tt4 = 1150              # K
+
+# # Fuel properties
+# LHV_fuel = 43e6         # J/kg  (43 MJ/kg)
+
+# # Specific heats and specific heat ratios
+# cp_air = 1000           # J/kg·K
+# gamma_air = 1.4
+# cp_gas = 1150           # J/kg·K
+# gamma_gas = 1.33
+
 ##  ----------------------- Equations Engine Cycle -----------------------------
 def PR_crit(eta, kappa):
     """Determines the critical pressure ratio for choked flow."""
@@ -101,20 +185,10 @@ def M_to_V(M, gamma, R, T):
     V = M * np.sqrt(gamma * R * T)
     return V
 
-def total_temp1(T_s, V, c_p_a):
-    """Calculates total Temp from static temp and velocity."""
-    T_tot = T_s + (V**2)/(2*c_p_a)
-    return T_tot
-
 def total_temp2(T_s, M, gamma_air):
     """Calculates total temp from static temp and M."""
     T_tot = T_s *(1 + (M**2)*(gamma_air-1)/(2))
     return T_tot
-
-def total_p1(p_s, V, c_p_a, T_tot, kappa_a):
-    """Calculates total p from static p, total T and V"""
-    p_tot = p_s*(1 + (V**2/(2 * c_p_a * T_tot)))**(kappa_a/(kappa_a - 1))
-    return p_tot
 
 def total_p2(p_s, M, gamma_air):
     """Calculates total p from static p and M."""
@@ -281,6 +355,7 @@ T_tot7 = T_tot5
 nozlleratio = p_tot7 / P_ambient
 print("Nozzle pressure ratio: ", nozlleratio) 
 criticalcore = PR_crit(eta_nozzle, gamma_gas) 
+
 if nozlleratio > criticalcore:
     print("CHOKED!")
     T_8 = T_tot7 * (2/(gamma_gas + 1))
@@ -300,8 +375,6 @@ if nozlleratio > criticalcore:
 else:
     print("UNCHOKED!")
     T_8 = T_tot7 * (2/(gamma_gas + 1))
-    p_8 = p_tot7 / (criticalcore)
-    print("p_8 (Pa): ", p_8)
     print("T_8 (K): ", T_8)
     v_flight = M_to_V(Mach, gamma_air, R_air, T_ambient)
     print("Flight velocity (m/s): ", v_flight)
@@ -309,12 +382,14 @@ else:
     print("V_8 (m/s): ", V_8)
     F_core = mdot_45 * (V_8 -  v_flight)
     print("Core thrust (N): ", F_core)
+
 #1.8) Bypass nozzle
 p_tot16 = p_tot13
 T_tot16 = T_tot13
 bypasspressureratio = p_tot16 / P_ambient
 print("Bypass nozzle pressure ratio: ", bypasspressureratio)
 criticalBypass = PR_crit(eta_nozzle, gamma_air)
+
 if bypasspressureratio > criticalBypass:
     #choked
     print("CHOKED!")
@@ -328,7 +403,16 @@ if bypasspressureratio > criticalBypass:
     print("rho_18 (kg/m3): ", rho_18)
     A_18 = mdot_bypass / (rho_18 * V_18)
     print("A_18 (m2): ", A_18)
-F_bypass = mdot_bypass * (V_18 - v_flight) + A_18 * (p_18 - P_ambient)
+    F_bypass = mdot_bypass * (V_18 - v_flight) + A_18 * (p_18 - P_ambient)
+else:
+    #unchoked
+    print("UNCHOKED!")
+    T_18 = T_tot16 * (2/(gamma_air + 1))
+    print("T_18 (K): ", T_18)
+    V_18 = np.sqrt(gamma_air * R_air * T_18)
+    print("V_18 (m/s): ", V_18)
+    F_bypass = mdot_bypass * (V_18 - v_flight) 
+
 print("Bypass thrust (N): ", F_bypass)
 # 1.9) Total thrust
 F_total = F_core + F_bypass
@@ -355,6 +439,7 @@ print("T_8_is_exp_amb (K): ", T_8_is_exp_amb)
 W_gg = work_gas_gen(mdot_core_fuel, cp_gas, T_g, T_8_is_exp_amb)
 print("Work output of gas generator (W): ", W_gg)
 P_gg = W_gg -0.5*mdot_core*v_flight**2
+# P_gg = W_gg
 print("Power output of gas generator (W): ", P_gg)
 
 # Effective jet velocities
