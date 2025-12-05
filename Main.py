@@ -354,7 +354,7 @@ print("T_8_is_exp_amb (K): ", T_8_is_exp_amb)
 
 W_gg = work_gas_gen(mdot_core_fuel, cp_gas, T_g, T_8_is_exp_amb)
 print("Work output of gas generator (W): ", W_gg)
-P_gg += -0.5*mdot_core*v_flight**2
+P_gg = W_gg -0.5*mdot_core*v_flight**2
 print("Check power output of gas generator (W): ", P_gg)
 
 # Effective jet velocities
