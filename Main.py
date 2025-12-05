@@ -355,34 +355,39 @@ print("T_8_is_exp_amb (K): ", T_8_is_exp_amb)
 W_gg = work_gas_gen(mdot_core_fuel, cp_gas, T_g, T_8_is_exp_amb)
 print("Work output of gas generator (W): ", W_gg)
 P_gg = W_gg -0.5*mdot_core*v_flight**2
-print("Check power output of gas generator (W): ", P_gg)
+print("Power output of gas generator (W): ", P_gg)
 
 # Effective jet velocities
 v_jet_eff_core = V_8 + (A_8/mdot_core_fuel)*(p_8 - P_ambient) 
 V_jet_eff_bypass = V_18 + (A_18/mdot_bypass)*(p_18 - P_ambient)
-print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff_core, V_jet_eff_bypass)
+print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff_core, "<- core | bypass ->", V_jet_eff_bypass)
 
 # Combustion efficiency
 eta_comb = ETA_comb(mdot_core, mdot_fuel, mdot_core_fuel, T_tot3, T_tot4, cp_gas, cp_air, LHV_fuel)
 print("Combustor efficiency: ", eta_comb)
 
-eta_thdy = ETA_thdy(P_gg, mdot_core, mdot_core_fuel, T_tot3, T_tot4, cp_gas, cp_air) # Alternative eta_thdy
+# Thermodynamic efficiency
+eta_thdy = ETA_thdy(P_gg, mdot_core, mdot_core_fuel, T_tot3, T_tot4, cp_gas, cp_air)
 print("Thermodynamic efficiency: ", eta_thdy)
 
+# Jet-generation efficiency
 eta_jet_gen = 0.5*(mdot_core_fuel*(v_jet_eff_core**2-v_flight**2)+mdot_bypass*(V_jet_eff_bypass**2-v_flight**2))/(P_gg)
-#Question: mdot_core_fuel of mdot_core???
+print("Jet-generation efficiency: ", eta_jet_gen)
 
-eta_prop_upper = ((mdot_bypass*(V_jet_eff_bypass-v_flight)*v_flight)+(mdot_core_fuel*(v_jet_eff_core-v_flight)*v_flight))
-eta_prop_lower = (0.5*mdot_bypass*(V_jet_eff_bypass**2-v_flight**2)+0.5*mdot_core_fuel*(v_jet_eff_core**2-v_flight**2))
-eta_prop = eta_prop_upper / eta_prop_lower
-print("Jet-generation efficiency (friso way): ", eta_jet_gen)
-print("Propulsive efficiency (friso way): ", eta_prop)
-eta_thermal = ((0.5*mdot_core_fuel*(v_jet_eff_core**2-v_flight**2))+(0.5*mdot_bypass*(V_jet_eff_bypass**2-v_flight**2)))/(mdot_fuel * LHV_fuel)
-print("Overall thermal efficiency (friso way): ", eta_thermal)
-eta_total = ((mdot_core_fuel*(v_jet_eff_core-v_flight)*v_flight)+(mdot_bypass*(V_jet_eff_bypass-v_flight)*v_flight))/(mdot_fuel * LHV_fuel)
-print("Total efficiency (friso way): ", eta_total)
-print(eta_thermal, eta_thdy*eta_jet_gen*eta_comb)
-print(eta_total, eta_prop*eta_thermal)
+# Propulsive efficiency
+eta_prop = ETA_prop([mdot_core_fuel, mdot_bypass], [v_jet_eff_core, V_jet_eff_bypass], v_flight)
+print("Propulsive efficiency: ", eta_prop)
+
+# Thermal efficiency
+# eta_thermal = ((0.5*mdot_core_fuel*(v_jet_eff_core**2-v_flight**2))+(0.5*mdot_bypass*(V_jet_eff_bypass**2-v_flight**2)))/(mdot_fuel * LHV_fuel)
+eta_thermal = ETA_thermal([mdot_core_fuel, mdot_bypass], [v_jet_eff_core, V_jet_eff_bypass], v_flight, mdot_fuel, LHV_fuel)
+print("Overall thermal efficiency: ", eta_thermal)
+
+# Total efficiency
+eta_total = ETA_total([mdot_core_fuel, mdot_bypass], [v_jet_eff_core, V_jet_eff_bypass], v_flight, mdot_fuel, LHV_fuel)
+print("Total efficiency: ", eta_total)
+print("Thermal efficiency consistency check:", eta_thermal, eta_thdy*eta_jet_gen*eta_comb)
+print("Total efficiency consistency check:",eta_total, eta_prop*eta_thermal)
 
 
 
