@@ -3,49 +3,50 @@ import math
 ## ------------------------------------------ Flight condition--------------------------------
 #constants from TUTORIAL:
 # LEAP-1A @ cruise (Mach 0.78, Altitude 10668 m)
-'''
-Mach = 0.78
-Altitude = 10668          # m
 
-# Ambient conditions
-T_ambient = 218.8         # K
-P_ambient = 23842         # Pa
-R_air = 287               # J/kg·K
+# Mach = 0.78
+# Altitude = 10668          # m
 
-# Mass flow & bypass
-mdot_air = 173            # kg/s
-Bypass_ratio = 12
+# # Ambient conditions
+# T_ambient = 218.8         # K
+# P_ambient = 23842         # Pa
+# R_air = 287               # J/kg·K
 
-# Pressure ratios
-IPR_inlet = 0.98
-FPR_fan = 1.4
-PR_LPC = 1.7
-PR_HPC = 12.5
-PR_combustor = 0.96
+# # Mass flow & bypass
+# mdot_air = 173            # kg/s
+# Bypass_ratio = 12
 
-# Temperatures
-Tt4 = 1400                # K (combustor exit)
+# # Pressure ratios
+# IPR_inlet = 0.98
+# FPR_fan = 1.4
+# PR_LPC = 1.7
+# PR_HPC = 12.5
+# PR_combustor = 0.96
 
-# Efficiencies
-eta_fan = 0.90
-eta_LPC = 0.92
-eta_HPC = 0.92
-eta_LPT = 0.90
-eta_HPT = 0.90
-eta_mech = 0.99
-eta_combustor = 0.995
-eta_nozzle = 0.98
-eta_gearbox = 0.995
+# # Temperatures
+# Tt4 = 1400                # K (combustor exit)
 
-# Fuel properties
-LHV_fuel = 43e6           # J/kg  (43 MJ/kg)
+# # Efficiencies
+# eta_fan = 0.90
+# eta_LPC = 0.92
+# eta_HPC = 0.92
+# eta_LPT = 0.90
+# eta_HPT = 0.90
+# eta_mech = 0.99
+# eta_combustor = 0.995
+# eta_nozzle = 0.98
+# eta_gearbox = 1
 
-# Specific heats & gammas
-cp_air = 1000             # J/kg·K
-gamma_air = 1.4
-cp_gas = 1150             # J/kg·K
-gamma_gas = 1.33
-'''
+# # Fuel properties
+# LHV_fuel = 43e6           # J/kg  (43 MJ/kg)
+
+# # Specific heats & gammas
+# cp_air = 1000             # J/kg·K
+# gamma_air = 1.4
+# cp_gas = 1150             # J/kg·K
+# gamma_gas = 1.33
+
+# accurate = False
 
 
 #Constant from assignment:
@@ -62,7 +63,7 @@ Bypass_ratio = 12.5
 
 # Pressure ratios
 IPR_inlet = 0.99
-FPR_fan = 1.75
+FPR_fan = 1.35
 PR_LPC = 4.5
 PR_HPC = 5.5
 PR_combustor = 0.96
@@ -79,7 +80,7 @@ eta_nozzle = 0.99
 eta_gearbox = 0.995
 
 # Turbine inlet temperature
-Tt4 = 1600              # K
+Tt4 = 1600            # K
 
 # Fuel properties
 LHV_fuel = 43e6         # J/kg  (43 MJ/kg)
@@ -89,6 +90,8 @@ cp_air = 1000           # J/kg·K
 gamma_air = 1.4
 cp_gas = 1150           # J/kg·K
 gamma_gas = 1.33
+
+accurate = True
 
 
 ##  ----------------------- Equations Engine Cycle -----------------------------
@@ -248,7 +251,10 @@ print("Work done on HPC (W): ", W_HPC)
 p_tot4 = p_tot3 * PR_combustor
 T_tot4 = Tt4
 # fuel mass flow
-mdot_fuel = mfr_fuel(mdot_core, cp_air,  cp_gas, T_tot3, T_tot4, LHV_fuel, eta_combustor)
+if accurate:
+    mdot_fuel = mfr_fuel(mdot_core, cp_air,  cp_gas, T_tot3, T_tot4, LHV_fuel, eta_combustor)
+else: 
+    mdot_fuel = (mdot_core * cp_gas * (T_tot4 - T_tot3)) / (LHV_fuel * eta_combustor) 
 print("Fuel mass flow (kg/s): ", mdot_fuel)
 mdot_core_fuel = mdot_core + mdot_fuel
 print("Total mass flow at combustor exit (kg/s): ", mdot_core_fuel)
@@ -371,11 +377,17 @@ V_jet_eff_bypass = V_18 + (A_18/mdot_bypass)*(p_18 - P_ambient) if bypasspressur
 print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff_core, "<- core | bypass ->", V_jet_eff_bypass)
 
 # Combustion efficiency
-eta_comb = ETA_comb(mdot_core, mdot_fuel, mdot_core_fuel, T_tot3, T_tot4, cp_gas, cp_air, LHV_fuel)
+if accurate:
+    eta_comb = ETA_comb(mdot_core, mdot_fuel, mdot_core_fuel, T_tot3, T_tot4, cp_gas, cp_air, LHV_fuel)
+else: 
+    eta_comb = (mdot_core * cp_gas * (T_tot4 -  T_tot3)) / (mdot_fuel * LHV_fuel)
 print("Combustor efficiency: ", eta_comb)
 
 # Thermodynamic efficiency
-eta_thdy = ETA_thdy(P_gg, mdot_core, mdot_core_fuel, T_tot3, T_tot4, cp_gas, cp_air)
+if accurate:    
+    eta_thdy = ETA_thdy(P_gg, mdot_core, mdot_core_fuel, T_tot3, T_tot4, cp_gas, cp_air)
+else:
+    eta_thdy = P_gg / (mdot_core * cp_gas * (T_tot4 -  T_tot3))
 print("Thermodynamic efficiency: ", eta_thdy)
 
 # Jet-generation efficiency
