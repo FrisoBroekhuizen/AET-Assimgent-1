@@ -62,7 +62,7 @@ Bypass_ratio = 12.5
 
 # Pressure ratios
 IPR_inlet = 0.99
-FPR_fan = 1.35
+FPR_fan = 1.75
 PR_LPC = 4.5
 PR_HPC = 5.5
 PR_combustor = 0.96
@@ -90,89 +90,6 @@ gamma_air = 1.4
 cp_gas = 1150           # J/kg·K
 gamma_gas = 1.33
 
-# #Test Value set 1:
-
-# Mach = 0.78
-# Altitude = 10668        # m
-# T_ambient = 220       # K
-# P_ambient = 23842       # Pa
-# R_air = 287             # J/kg·K
-
-# # Mass flows
-# mdot_air = (8.6 + 1) * 50          # kg/s
-# Bypass_ratio = 8.6
-
-# # Pressure ratios
-# IPR_inlet = 0.99
-# FPR_fan = 1.5
-# PR_LPC = (40/(1.5*10))
-# PR_HPC = 10
-# PR_combustor = 0.96
-
-# # Efficiencies
-# eta_fan = 0.92
-# eta_LPC = 0.92
-# eta_HPC = 0.92
-# eta_LPT = 0.92
-# eta_HPT = 0.92
-# eta_mech = 0.99
-# eta_combustor = 0.995
-# eta_nozzle = 0.99
-# eta_gearbox = 1
-
-# # Turbine inlet temperature
-# Tt4 = 1450              # K
-
-# # Fuel properties
-# LHV_fuel = 43e6         # J/kg  (43 MJ/kg)
-
-# # Specific heats and specific heat ratios
-# cp_air = 1000           # J/kg·K
-# gamma_air = 1.4
-# cp_gas = 1150           # J/kg·K
-# gamma_gas = 1.33
-
-# #Test Value set 2:
-
-# Mach = 0.78
-# Altitude = 10668        # m
-# T_ambient = 220       # K
-# P_ambient = 23842       # Pa
-# R_air = 287             # J/kg·K
-
-# # Mass flows
-# mdot_air = (1.62 + 1) * 90.2          # kg/s
-# Bypass_ratio = 1.62
-
-# # Pressure ratios
-# IPR_inlet = 0.99
-# FPR_fan = 1.9
-# PR_LPC = (17/(1.9*3.5))
-# PR_HPC = 3.5
-# PR_combustor = 0.96
-
-# # Efficiencies
-# eta_fan = 0.85
-# eta_LPC = 0.85
-# eta_HPC = 0.85
-# eta_LPT = 0.88
-# eta_HPT = 0.88
-# eta_mech = 0.99
-# eta_combustor = 0.985
-# eta_nozzle = 0.99
-# eta_gearbox = 1
-
-# # Turbine inlet temperature
-# Tt4 = 1150              # K
-
-# # Fuel properties
-# LHV_fuel = 43e6         # J/kg  (43 MJ/kg)
-
-# # Specific heats and specific heat ratios
-# cp_air = 1000           # J/kg·K
-# gamma_air = 1.4
-# cp_gas = 1150           # J/kg·K
-# gamma_gas = 1.33
 
 ##  ----------------------- Equations Engine Cycle -----------------------------
 def PR_crit(eta, kappa):
@@ -420,13 +337,19 @@ print("Total thrust (N): ", F_total)
 TSFC = mdot_fuel / (F_total*0.000001) 
 print("TSFC (kg/Ns): ", TSFC)
 
+P_comp = W_HPT + W_LPT
+print("Total compressor power (MW): ", P_comp / 10**6)
+
 ## -- CALCULATIONS 2) Gas generator & Efficiencies -----------------------------------------------------------------------------------
 
 # Gas generator
 W_g = work_comp(mdot_core, cp_air, T_tot21, T_tot25)/eta_mech + work_comp(mdot_core, cp_air, T_tot2, T_tot21)/(eta_mech*eta_gearbox)
 print("Power output of gas generator (W): ", W_g)
-print("T_45", T_tot45)
+W_g_alt = work_comp(mdot_core, cp_air, T_tot21, T_tot25)/eta_mech + (mdot_core/ mdot_air) * work_comp(mdot_air, cp_air, T_tot2, T_tot13)/(eta_mech*eta_gearbox)
+print("Alternative power output of gas generator (W): ", W_g_alt)
+
 T_g = T_tot_turb(T_tot45, W_g, mdot_core_fuel, cp_gas)
+print("T_45", T_tot45)
 print("T_g (K): ", T_g)
 print("T_5", T_tot5)
 
@@ -443,8 +366,8 @@ P_gg = W_gg -0.5*mdot_core*v_flight**2
 print("Power output of gas generator (W): ", P_gg)
 
 # Effective jet velocities
-v_jet_eff_core = V_8 + (A_8/mdot_core_fuel)*(p_8 - P_ambient) 
-V_jet_eff_bypass = V_18 + (A_18/mdot_bypass)*(p_18 - P_ambient)
+v_jet_eff_core = V_8 + (A_8/mdot_core_fuel)*(p_8 - P_ambient) if nozlleratio > criticalcore else V_8
+V_jet_eff_bypass = V_18 + (A_18/mdot_bypass)*(p_18 - P_ambient) if bypasspressureratio > criticalBypass else V_18
 print("Effective jet velocity for efficiency calculations (m/s): ", v_jet_eff_core, "<- core | bypass ->", V_jet_eff_bypass)
 
 # Combustion efficiency
@@ -473,6 +396,7 @@ eta_total = ETA_total([mdot_core_fuel, mdot_bypass], [v_jet_eff_core, V_jet_eff_
 print("Total efficiency: ", eta_total)
 print("Thermal efficiency consistency check:", eta_thermal, eta_thdy*eta_jet_gen*eta_comb)
 print("Total efficiency consistency check:",eta_total, eta_prop*eta_thermal)
-
+TSFC_2 = v_flight / (eta_total * LHV_fuel) * 10**6
+print("Check of TSFCs (kg/Ns): ", TSFC_2, "<- calculated w total eta | calculated with thrust ->", TSFC)
 
 
