@@ -271,7 +271,7 @@ def ETA_prop(mdot, vj, v0):
     """
     mdot = np.asarray(mdot)
     vj   = np.asarray(vj)
-    num = np.sum(mdot * (vj - v0) * v0)
+    num = np.sum(mdot * (vj - v0)) * v0
     den = 0.5 * np.sum(mdot * (vj**2 - v0**2))
     return num / den
 
@@ -291,7 +291,7 @@ def ETA_total(mdot, vj, v0, mdot_f, LHV_f):
     """
     mdot = np.asarray(mdot)
     vj   = np.asarray(vj)
-    num = np.sum(mdot * (vj - v0) * v0)
+    num = np.sum(mdot * (vj - v0)) * v0
     den = mdot_f * LHV_f
     return num / den
 
